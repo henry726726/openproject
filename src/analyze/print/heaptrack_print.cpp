@@ -28,6 +28,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip> // for formatting output
+
 //
 
 using namespace std;
@@ -614,6 +615,9 @@ struct Printer final : public AccumulatedTraceData
 };
 }
 
+void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age);
+void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age);
+
 int main(int argc, char** argv)
 {
     po::options_description desc("Options", 120, 60);
@@ -933,5 +937,53 @@ int main(int argc, char** argv)
     return 0;
 }
 
+void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
+    namespace fs = std::filesystem;
+    auto now = std::chrono::system_clock::now();
+
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (fs::is_regular_file(entry)) {
+                auto last_write_time = fs::last_write_time(entry);
+                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                auto remaining_time = max_age - file_age;
+
+                std::cout << "File: " << entry.path().filename().string();
+                if (remaining_time.count() > 0) {
+                    auto remaining_days = std::chrono::duration_cast<std::chrono::days>(remaining_time).count();
+                    std::cout << " - Remaining days before deletion: " << remaining_days << " day(s)\n";
+                } else {
+                    std::cout << " - Marked for deletion (already expired)\n";
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+}
+
+void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age) {
+    namespace fs = std::filesystem;
+    auto now = std::chrono::system_clock::now();
+
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (fs::is_regular_file(entry)) {
+                auto last_write_time = fs::last_write_time(entry);
+                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                if (file_age > max_age) {
+                    fs::remove(entry);
+                    std::cout << "Deleted old file: " << entry.path() << "\n";
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+}
 
 
