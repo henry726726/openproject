@@ -558,12 +558,10 @@ struct Printer final : public AccumulatedTraceData
     size_t peakLimit = 10;
     size_t subPeakLimit = 5;
     //
-
-    // cleanup function
-    void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
     namespace fs = std::filesystem;
-    auto now = std::chrono::system_clock::now();
 
+    void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
+    auto now = std::chrono::system_clock::now();
     try {
         for (const auto& entry : fs::directory_iterator(directory)) {
             if (fs::is_regular_file(entry)) {
@@ -574,38 +572,41 @@ struct Printer final : public AccumulatedTraceData
                 std::cout << "File: " << entry.path().filename().string();
                 if (remaining_time.count() > 0) {
                     auto remaining_days = std::chrono::duration_cast<std::chrono::days>(remaining_time).count();
-                    std::cout << " - Remaining days before deletion: " << remaining_days << " day(s)" << "\n";
+                    std::cout << " - Remaining days before deletion: " << remaining_days << " day(s)\n";
                 } else {
                     std::cout << " - Marked for deletion (already expired)\n";
                 }
             }
         }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << "\n";
     } catch (const std::exception& e) {
-        std::cerr << "Error accessing files: " << e.what() << "\n";
+        std::cerr << "Error: " << e.what() << "\n";
     }
     }
 
-    
-
-    // Cleanup function
     void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age) {
-        namespace fs = std::filesystem;
         auto now = std::chrono::system_clock::now();
-
         try {
          for (const auto& entry : fs::directory_iterator(directory)) {
-             if (fs::is_regular_file(entry)) {
-                 auto last_write_time = fs::last_write_time(entry);
-                    auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
-                    if (file_age > max_age) {
-                    fs::remove(entry);
-                    std::cout << "Deleted old file: " << entry.path() << "\n";
-                    }
-                }
-            }
-        } catch (const std::exception& e) {
-         std::cerr << "Error cleaning up files: " << e.what() << "\n";
-    }
+              if (fs::is_regular_file(entry)) {
+                  auto last_write_time = fs::last_write_time(entry);
+                  auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                 if (file_age > max_age) {
+                      try {
+                          fs::remove(entry);
+                         std::cout << "Deleted old file: " << entry.path() << "\n";
+                      } catch (const fs::filesystem_error& e) {
+                           std::cerr << "Error deleting file: " << entry.path() << " - " << e.what() << "\n";
+                      }   
+                 }
+              }
+         }
+        } catch (const fs::filesystem_error& e) {
+           std::cerr << "Filesystem error: " << e.what() << "\n";
+     }    catch (const std::exception& e) {
+         std::cerr << "Error: " << e.what() << "\n";
+        }
     }
 
     //
@@ -829,41 +830,22 @@ int main(int argc, char** argv)
         cout << endl;
     }
 
-    const double totalTimeS = data.totalTime ? (1000. "/ data.totalTime)" : 1.;
-    cout << "total runtime: " << fixed << (data.totalTime / 1000.) << "s.\n"
-         << "calls to allocation functions: " << data.totalCost.allocations << " ("
-         << int64_t(data.totalCost.allocations * totalTimeS) << "/s)\n"
-         << "temporary memory allocations: " << data.totalCost.temporary << " ("
-         << int64_t(data.totalCost.temporary * totalTimeS) << "/s)\n"
-         << "peak heap memory consumption: " << formatBytes(data.totalCost.peak) << '\n'
-         << "peak RSS (including heaptrack overhead): " << formatBytes(data.peakRSS * data.systemInfo.pageSize) << '\n'
-         << "total memory leaked: " << formatBytes(data.totalCost.leaked) << '\n';
     //
 
-   // Directory to clean
     const std::string tempDir = "/home/ubuntu/test_cleanup";
-    // Max file age (7 days)
-    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7);
+    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7); // 7일
 
-    cout << "Starting directory cleanup process.\n";
+    std::cout << "Starting directory cleanup process.\n";
 
-    // Show remaining days for each file
-    cout << "Checking remaining days for files in: " << tempDir << "\n";
+    // 파일 남은 기간 출력
+    std::cout << "Checking remaining days for files in: " << tempDir << "\n";
     showRemainingDays(tempDir, maxFileAge);
-    cout << "Finished checking remaining days.\n";
+    std::cout << "Finished checking remaining days.\n";
 
-    // Cleanup old files (older than 7 days)
-    cout << "Cleaning up old files in: " << tempDir << "\n";
+    // 오래된 파일 삭제
+    std::cout << "Cleaning up old files in: " << tempDir << "\n";
     cleanupOldFiles(tempDir, maxFileAge);
-    cout << "Cleanup complete.\n";
-
-    cout << "DEBUG: Starting showRemainingDays\n";
-    showRemainingDays(tempDir, maxFileAge);
-    cout << "DEBUG: Finished showRemainingDays\n";
-
-    cout << "DEBUG: Starting cleanupOldFiles\n";
-    cleanupOldFiles(tempDir, maxFileAge);
-    cout << "DEBUG: Finished cleanupOldFiles\n";
+    std::cout << "Cleanup complete.\n";
 
     if (std::filesystem::exists(tempDir) && !std::filesystem::is_empty(tempDir)) {
     cout << "Files found in " << tempDir << ". Starting operations.\n";
@@ -876,6 +858,17 @@ int main(int argc, char** argv)
 
 
     //
+
+    const double totalTimeS = data.totalTime ? (1000. "/ data.totalTime)" : 1.;
+    cout << "total runtime: " << fixed << (data.totalTime / 1000.) << "s.\n"
+         << "calls to allocation functions: " << data.totalCost.allocations << " ("
+         << int64_t(data.totalCost.allocations * totalTimeS) << "/s)\n"
+         << "temporary memory allocations: " << data.totalCost.temporary << " ("
+         << int64_t(data.totalCost.temporary * totalTimeS) << "/s)\n"
+         << "peak heap memory consumption: " << formatBytes(data.totalCost.peak) << '\n'
+         << "peak RSS (including heaptrack overhead): " << formatBytes(data.peakRSS * data.systemInfo.pageSize) << '\n'
+         << "total memory leaked: " << formatBytes(data.totalCost.leaked) << '\n';
+    
 
     if (data.totalLeakedSuppressed) {
         cout << "suppressed leaks: " << formatBytes(data.totalLeakedSuppressed) << '\n';
