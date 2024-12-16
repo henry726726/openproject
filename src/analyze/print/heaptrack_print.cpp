@@ -28,7 +28,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip> // for formatting output
-
+//
 
 using namespace std;
 namespace po = boost::program_options;
@@ -557,6 +557,7 @@ struct Printer final : public AccumulatedTraceData
     string filterBtFunction;
     size_t peakLimit = 10;
     size_t subPeakLimit = 5;
+    //
 
     // cleanup function
     void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
@@ -584,6 +585,8 @@ struct Printer final : public AccumulatedTraceData
     }
     }
 
+    
+
     // Cleanup function
     void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age) {
         namespace fs = std::filesystem;
@@ -605,6 +608,7 @@ struct Printer final : public AccumulatedTraceData
     }
     }
 
+    //
 
 };
 }
@@ -892,6 +896,7 @@ int main(int argc, char** argv)
             }
         }
     }
+    //
 
     // Directory to clean
     const std::string tempDir = "/tmp";
@@ -899,12 +904,15 @@ int main(int argc, char** argv)
     const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7);
 
     // Show remaining days for each file
-    std::cout << "Checking remaining days for files in: " << tempDir << "\n";
+    cout << "Checking remaining days for files in: " << tempDir << "\n";
     showRemainingDays(tempDir, maxFileAge);
 
     // Cleanup old files (older than 7 days)
+    cout << "Cleaning up old files in: " << tempDir << "\n";
     cleanupOldFiles(tempDir, maxFileAge);
+    cout << "Cleanup complete.\n";
 
+    //
 
     return 0;
 }
