@@ -35,6 +35,8 @@
 using namespace std;
 namespace po = boost::program_options;
 
+
+
 namespace {
 
 /**
@@ -122,13 +124,25 @@ std::istream& operator>>(std::istream& in, CostType& type)
 }
 
 struct Printer final : public AccumulatedTraceData
-{
-    void finalize()
-    {
-        applyLeakSuppressions();
-        filterAllocations();
-        mergedAllocations = mergeAllocations(allocations);
+{   
+    //
+    void finalize() {
+    applyLeakSuppressions();
+    filterAllocations();
+
+    size_t total = allocations.size(); // 전체 작업 수
+    size_t current = 0;
+
+    for (const Allocation& allocation : allocations) {
+        mergeAllocation(&mergedAllocations, allocation);
+
+        // 진행률 표시
+        ++current;
+        printProgress(current, total);
     }
+    std::cout << std::endl; // 작업 완료 후 줄바꿈
+    }
+    //
 
     void mergeAllocation(vector<MergedAllocation>* mergedAllocations, const Allocation& allocation) const
     {
@@ -560,28 +574,13 @@ struct Printer final : public AccumulatedTraceData
     size_t peakLimit = 10;
     size_t subPeakLimit = 5;
 
-    void Printer::finalize() {
-    applyLeakSuppressions();
-    filterAllocations();
 
-    size_t total = allocations.size(); // 전체 작업 수
-    size_t current = 0;
-
-    for (const Allocation& allocation : allocations) {
-        mergeAllocation(&mergedAllocations, allocation);
-
-        // 진행률 표시
-        ++current;
-        printProgress(current, total);
-    }
-    std::cout << std::endl; // 작업 완료 후 줄바꿈
+    void printProgress(size_t current, size_t total) {
+    int progress = static_cast<int>((100.0 * current) / total);
+    std::cout << "\rProgress: " << progress << "%";
+    std::cout.flush();
     }
 
-    void Printer::printProgress(size_t current, size_t total) {
-        int progress = static_cast<int>((100.0 * current) / total);
-        std::cout << "\rProgress: " << progress << "%";
-        std::cout.flush(); // 버퍼를 즉시 비워 출력
-    }
 
 };
 }
@@ -872,3 +871,6 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
+
+#endif // PRINTER_H
