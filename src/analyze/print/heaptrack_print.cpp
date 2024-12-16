@@ -126,21 +126,46 @@ std::istream& operator>>(std::istream& in, CostType& type)
 struct Printer final : public AccumulatedTraceData
 {   
     //
-    void finalize() {
-    applyLeakSuppressions();
-    filterAllocations();
+    std::vector<int> allocations; // 데이터 크기를 예로 추가
+    std::vector<int> mergedAllocations;
 
-    size_t total = allocations.size(); // 전체 작업 수
-    size_t current = 0;
-
-    for (const Allocation& allocation : allocations) {
-        mergeAllocation(&mergedAllocations, allocation);
-
-        // 진행률 표시
-        ++current;
-        printProgress(current, total);
+    void applyLeakSuppressions() {
+        // 예제 코드: 메모리 누수 억제 로직
+        std::cout << "Applying leak suppressions...\n";
     }
-    std::cout << std::endl; // 작업 완료 후 줄바꿈
+
+    void filterAllocations() {
+        // 예제 코드: 할당 필터 로직
+        std::cout << "Filtering allocations...\n";
+    }
+
+    void mergeAllocation(std::vector<int>* merged, const int& allocation) {
+        // 예제 코드: 할당 병합 로직
+        merged->push_back(allocation);
+    }
+
+    void finalize() {
+        applyLeakSuppressions();
+        filterAllocations();
+
+        size_t total = allocations.size(); // 전체 작업 수
+        size_t current = 0;
+
+        for (const int& allocation : allocations) {
+            mergeAllocation(&mergedAllocations, allocation);
+
+            // 진행률 표시
+            ++current;
+            printProgress(current, total);
+        }
+        std::cout << std::endl; // 작업 완료 후 줄바꿈
+    }
+
+    void printProgress(size_t current, size_t total) {
+        if (total == 0) return; // 전체 작업 수가 0이면 표시하지 않음
+        int progress = static_cast<int>((100.0 * current) / total);
+        std::cout << "\rProgress: " << progress << "%";
+        std::cout.flush();
     }
     //
 
@@ -575,11 +600,7 @@ struct Printer final : public AccumulatedTraceData
     size_t subPeakLimit = 5;
 
 
-    void printProgress(size_t current, size_t total) {
-    int progress = static_cast<int>((100.0 * current) / total);
-    std::cout << "\rProgress: " << progress << "%";
-    std::cout.flush();
-    }
+
 
 
 };
