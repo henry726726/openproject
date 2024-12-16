@@ -23,19 +23,12 @@
 
 #include "util/config.h"
 
-//
-#ifndef PRINTER_H
-#define PRINTER_H
-
-#include <cstddef> // size_t
-#include <chrono>  // for timing
+#include <filesystem>
+#include <chrono>
 #include <iostream>
-//
 
 using namespace std;
 namespace po = boost::program_options;
-
-
 
 namespace {
 
@@ -124,25 +117,13 @@ std::istream& operator>>(std::istream& in, CostType& type)
 }
 
 struct Printer final : public AccumulatedTraceData
-{   
-    //
-    void finalize() {
-    applyLeakSuppressions();
-    filterAllocations();
-
-    size_t total = allocations.size(); // 전체 작업 수
-    size_t current = 0;
-
-    for (const Allocation& allocation : allocations) {
-        mergeAllocation(&mergedAllocations, allocation);
-
-        // 진행률 표시
-        ++current;
-        printProgress(current, total);
+{
+    void finalize()
+    {
+        applyLeakSuppressions();
+        filterAllocations();
+        mergedAllocations = mergeAllocations(allocations);
     }
-    std::cout << std::endl; // 작업 완료 후 줄바꿈
-    }
-    //
 
     void mergeAllocation(vector<MergedAllocation>* mergedAllocations, const Allocation& allocation) const
     {
@@ -574,19 +555,28 @@ struct Printer final : public AccumulatedTraceData
     size_t peakLimit = 10;
     size_t subPeakLimit = 5;
 
-
-    void printProgress(size_t current, size_t total) {
-    int progress = static_cast<int>((100.0 * current) / total);
-    std::cout << "\rProgress: " << progress << "%";
-    std::cout.flush();
-    }
-
-
+    void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age);
+    void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age);
 };
 }
 
 int main(int argc, char** argv)
 {
+    const std::string tempDir = "/home/ubuntu/test_cleanup";
+    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7); // 7일
+
+    std::cout << "Starting directory cleanup process.\n";
+
+    // 남은 파일 상태 확인
+    std::cout << "Checking remaining days for files in: " << tempDir << "\n";
+    showRemainingDays(tempDir, maxFileAge);
+    std::cout << "Finished checking remaining days.\n";
+
+    // 오래된 파일 삭제
+    std::cout << "Cleaning up old files in: " << tempDir << "\n";
+    cleanupOldFiles(tempDir, maxFileAge);
+    std::cout << "Cleanup complete.\n";
+
     po::options_description desc("Options", 120, 60);
     // clang-format off
     desc.add_options()
@@ -872,5 +862,51 @@ int main(int argc, char** argv)
     return 0;
 }
 
+void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
+    namespace fs = std::filesystem;
+    auto now = std::chrono::system_clock::now();
 
-#endif // PRINTER_H
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (fs::is_regular_file(entry)) {
+                auto last_write_time = fs::last_write_time(entry);
+                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                auto remaining_time = max_age - file_age;
+
+                std::cout << "File: " << entry.path().filename().string();
+                if (remaining_time.count() > 0) {
+                    auto remaining_days = std::chrono::duration_cast<std::chrono::days>(remaining_time).count();
+                    std::cout << " - Remaining days before deletion: " << remaining_days << " day(s)\n";
+                } else {
+                    std::cout << " - Marked for deletion (already expired)\n";
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+}
+
+void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age) {
+    namespace fs = std::filesystem;
+    auto now = std::chrono::system_clock::now();
+
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (fs::is_regular_file(entry)) {
+                auto last_write_time = fs::last_write_time(entry);
+                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                if (file_age > max_age) {
+                    fs::remove(entry);
+                    std::cout << "Deleted old file: " << entry.path() << "\n";
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+}
