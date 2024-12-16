@@ -1,0 +1,10 @@
+# this is a comment
+
+# as shown above, we can deal with empty lines
+this line is invalid
+
+leak:QEventDispatcherGlibPrivate::QEventDispatcherGlibPrivate
+# whitespace is trimmed
+  leak:corelib/codecs/qicucodec.cpp  
+# we can wildcard-match and anchor
+leak:^/lib*/ld-linux-*.so.2$

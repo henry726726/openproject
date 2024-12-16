@@ -1,0 +1,17 @@
+language: cpp
+compiler: gcc
+os: linux
+dist: xenial
+
+services:
+  - docker
+
+install:
+  - wget -nv -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
+  - chmod a+x upload.sh
+  - sudo mv upload.sh /usr/bin/github-upload
+
+script:
+  - set -e # Exit immediately if anything fails
+  - ./tools/build_appimage_in_docker.sh
+  - github-upload ./heaptrack-*.AppImage

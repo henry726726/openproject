@@ -1,0 +1,6 @@
+if (HEAPTRACK_BUILD_TRACK AND BUILD_TESTING)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+    add_subdirectory(manual)
+    add_subdirectory(auto)
+    add_subdirectory(benchmarks)
+endif()

@@ -1,0 +1,5 @@
+build*/
+*.zst
+*.gz
+*.AppImage
+.git

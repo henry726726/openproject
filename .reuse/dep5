@@ -1,0 +1,17 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: heaptrack
+Upstream-Contact: Milian Wolff <mail@milianw.de>
+Source: https://invent.kde.org/sdk/heaptrack
+
+Files: 3rdparty/robin-map/*
+Copyright: 2017 Thibaut Goetghebuer-Planchon <tessil@gmx.com>
+License: MIT
+
+Files: 3rdparty/boost-zstd/*
+Copyright: Boost developers <http://www.boost.org/libs/iostreams>
+License: BSL-1.0
+
+Files: 3rdparty/doctest.h
+Copyright: Copyright (c) 2016-2023 Viktor Kirilov
+License: MIT
+
