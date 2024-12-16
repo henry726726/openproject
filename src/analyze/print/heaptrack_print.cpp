@@ -829,7 +829,7 @@ int main(int argc, char** argv)
         cout << endl;
     }
 
-    const double totalTimeS = data.totalTime ? (1000. / data.totalTime) : 1.;
+    const double totalTimeS = data.totalTime ? (1000. "/ data.totalTime)" : 1.;
     cout << "total runtime: " << fixed << (data.totalTime / 1000.) << "s.\n"
          << "calls to allocation functions: " << data.totalCost.allocations << " ("
          << int64_t(data.totalCost.allocations * totalTimeS) << "/s)\n"
@@ -838,6 +838,27 @@ int main(int argc, char** argv)
          << "peak heap memory consumption: " << formatBytes(data.totalCost.peak) << '\n'
          << "peak RSS (including heaptrack overhead): " << formatBytes(data.peakRSS * data.systemInfo.pageSize) << '\n'
          << "total memory leaked: " << formatBytes(data.totalCost.leaked) << '\n';
+    //
+
+   // Directory to clean
+    const std::string tempDir = "/tmp";
+    // Max file age (7 days)
+    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7);
+
+    cout << "Starting directory cleanup process.\n";
+
+    // Show remaining days for each file
+    cout << "Checking remaining days for files in: " << tempDir << "\n";
+    showRemainingDays(tempDir, maxFileAge);
+    cout << "Finished checking remaining days.\n";
+
+    // Cleanup old files (older than 7 days)
+    cout << "Cleaning up old files in: " << tempDir << "\n";
+    cleanupOldFiles(tempDir, maxFileAge);
+    cout << "Cleanup complete.\n";
+
+    //
+
     if (data.totalLeakedSuppressed) {
         cout << "suppressed leaks: " << formatBytes(data.totalLeakedSuppressed) << '\n';
 
@@ -896,23 +917,7 @@ int main(int argc, char** argv)
             }
         }
     }
-    //
-
-    // Directory to clean
-    const std::string tempDir = "/tmp";
-    // Max file age (7 days)
-    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7);
-
-    // Show remaining days for each file
-    cout << "Checking remaining days for files in: " << tempDir << "\n";
-    showRemainingDays(tempDir, maxFileAge);
-
-    // Cleanup old files (older than 7 days)
-    cout << "Cleaning up old files in: " << tempDir << "\n";
-    cleanupOldFiles(tempDir, maxFileAge);
-    cout << "Cleanup complete.\n";
-
-    //
+    
 
     return 0;
 }
