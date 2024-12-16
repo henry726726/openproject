@@ -841,7 +841,7 @@ int main(int argc, char** argv)
     //
 
    // Directory to clean
-    const std::string tempDir = "/tmp";
+    const std::string tempDir = "/home/ubuntu/test_cleanup";
     // Max file age (7 days)
     const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7);
 
@@ -856,6 +856,24 @@ int main(int argc, char** argv)
     cout << "Cleaning up old files in: " << tempDir << "\n";
     cleanupOldFiles(tempDir, maxFileAge);
     cout << "Cleanup complete.\n";
+
+    cout << "DEBUG: Starting showRemainingDays\n";
+    showRemainingDays(tempDir, maxFileAge);
+    cout << "DEBUG: Finished showRemainingDays\n";
+
+    cout << "DEBUG: Starting cleanupOldFiles\n";
+    cleanupOldFiles(tempDir, maxFileAge);
+    cout << "DEBUG: Finished cleanupOldFiles\n";
+
+    if (std::filesystem::exists(tempDir) && !std::filesystem::is_empty(tempDir)) {
+    cout << "Files found in " << tempDir << ". Starting operations.\n";
+    showRemainingDays(tempDir, maxFileAge);
+    cleanupOldFiles(tempDir, maxFileAge);
+    } else {
+     cout << "No files found in " << tempDir << ". Skipping operations.\n";
+    }
+
+
 
     //
 
