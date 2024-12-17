@@ -23,9 +23,11 @@
 
 #include "util/config.h"
 
-#include <filesystem>
-#include <chrono>
-#include <iostream>
+#include <filesystem>  // 파일 시스템 작업을 위한 헤더
+#include <chrono>      // 시간 연산을 위한 헤더
+#include <iostream>    // 입출력 작업을 위한 헤더
+#include <cstdlib>     // atoi()를 위한 헤더
+#include <string> 
 
 using namespace std;
 namespace po = boost::program_options;
@@ -555,15 +557,26 @@ struct Printer final : public AccumulatedTraceData
     size_t peakLimit = 10;
     size_t subPeakLimit = 5;
 
-    void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age);
-    void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age);
+    // 함수 추가
+    void showRemainingDays(const std::string& directory, const std::chrono::minutes& max_age);
+    void cleanupOldFiles(const std::string& directory, const std::chrono::minutes& max_age);
+
+    //
+
 };
 }
 
 int main(int argc, char** argv)
 {
-    const std::string tempDir = "/home/ubuntu/test_cleanup";
-    const std::chrono::hours maxFileAge = std::chrono::hours(24 * 7); // 7일
+    //함수 추가
+    
+   if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <directory>\n";
+        return 1;
+    }
+
+    const std::string tempDir = argv[1];
+    const std::chrono::minutes maxFileAge = std::chrono::minutes(7 * 24 * 60); // 7일을 분 단위로 설정 (10080분)
 
     std::cout << "Starting directory cleanup process.\n";
 
@@ -576,6 +589,8 @@ int main(int argc, char** argv)
     std::cout << "Cleaning up old files in: " << tempDir << "\n";
     cleanupOldFiles(tempDir, maxFileAge);
     std::cout << "Cleanup complete.\n";
+
+    //
 
     po::options_description desc("Options", 120, 60);
     // clang-format off
@@ -862,7 +877,10 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void showRemainingDays(const std::string& directory, const std::chrono::hours& max_age) {
+//추가//
+
+void showRemainingDays(const std::string& directory, const std::chrono::minutes& max_age)
+{
     namespace fs = std::filesystem;
     auto now = std::chrono::system_clock::now();
 
@@ -870,13 +888,15 @@ void showRemainingDays(const std::string& directory, const std::chrono::hours& m
         for (const auto& entry : fs::directory_iterator(directory)) {
             if (fs::is_regular_file(entry)) {
                 auto last_write_time = fs::last_write_time(entry);
-                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                    last_write_time - fs::file_time_type::clock::now() + now);
+
+                auto file_age = std::chrono::duration_cast<std::chrono::minutes>(now - sctp);
                 auto remaining_time = max_age - file_age;
 
                 std::cout << "File: " << entry.path().filename().string();
                 if (remaining_time.count() > 0) {
-                    auto remaining_days = std::chrono::duration_cast<std::chrono::days>(remaining_time).count();
-                    std::cout << " - Remaining days before deletion: " << remaining_days << " day(s)\n";
+                    std::cout << " - Remaining time before deletion: " << remaining_time.count() << " minute(s)\n";
                 } else {
                     std::cout << " - Marked for deletion (already expired)\n";
                 }
@@ -889,7 +909,8 @@ void showRemainingDays(const std::string& directory, const std::chrono::hours& m
     }
 }
 
-void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max_age) {
+void cleanupOldFiles(const std::string& directory, const std::chrono::minutes& max_age)
+{
     namespace fs = std::filesystem;
     auto now = std::chrono::system_clock::now();
 
@@ -897,7 +918,10 @@ void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max
         for (const auto& entry : fs::directory_iterator(directory)) {
             if (fs::is_regular_file(entry)) {
                 auto last_write_time = fs::last_write_time(entry);
-                auto file_age = std::chrono::duration_cast<std::chrono::hours>(now - last_write_time);
+                auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                    last_write_time - fs::file_time_type::clock::now() + now);
+
+                auto file_age = std::chrono::duration_cast<std::chrono::minutes>(now - sctp);
                 if (file_age > max_age) {
                     fs::remove(entry);
                     std::cout << "Deleted old file: " << entry.path() << "\n";
@@ -910,3 +934,5 @@ void cleanupOldFiles(const std::string& directory, const std::chrono::hours& max
         std::cerr << "Error: " << e.what() << "\n";
     }
 }
+
+//
